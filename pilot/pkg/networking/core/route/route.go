@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"strings"
 
+	fallback "github.com/envoyproxy/go-control-plane/contrib/envoy/extensions/custom_cluster_plugins/cluster_fallback/v3"
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xdsfault "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/common/fault/v3"
@@ -640,6 +641,7 @@ func applyHTTPRouteDestination(
 		consistentHash = hash != nil
 	} else {
 		weighted := make([]*route.WeightedCluster_ClusterWeight, 0)
+		clusterConfigList := make([]*fallback.ClusterFallbackConfig_ClusterConfig, 0)
 		for _, dst := range in.Route {
 			if dst.Weight == 0 {
 				// Ignore 0 weighted clusters if there are other clusters in the route.
@@ -648,10 +650,25 @@ func applyHTTPRouteDestination(
 			destinationweight, hostname := processWeightedDestination(dst, opts, listenerPort, action)
 			weighted = append(weighted, destinationweight)
 			hostnames = append(hostnames, hostname)
+			if len(dst.Fallback) > 0 {
+				clusterConfigList = append(clusterConfigList, convertFallbackClusters(opts, listenerPort, destinationweight.Name, dst.Fallback))
+			}
 		}
+		var weightedClusterConfig *fallback.ClusterFallbackConfig
+		if len(clusterConfigList) > 1 {
+			weightedClusterConfig = &fallback.ClusterFallbackConfig{
+				ConfigSpecifier: &fallback.ClusterFallbackConfig_WeightedClusterConfig_{
+					WeightedClusterConfig: &fallback.ClusterFallbackConfig_WeightedClusterConfig{
+						Config: clusterConfigList,
+					},
+				},
+			}
+		}
+
 		action.ClusterSpecifier = &route.RouteAction_WeightedClusters{
 			WeightedClusters: &route.WeightedCluster{
-				Clusters: weighted,
+				Clusters:                     weighted,
+				InlineClusterSpecifierPlugin: buildClusterSpecifierPlugin(weightedClusterConfig),
 			},
 		}
 	}
@@ -659,14 +676,59 @@ func applyHTTPRouteDestination(
 	return hostnames
 }
 
+func buildClusterSpecifierPlugin(config *fallback.ClusterFallbackConfig) *route.ClusterSpecifierPlugin {
+	if config == nil {
+		return nil
+	}
+
+	return &route.ClusterSpecifierPlugin{
+		Extension: &core.TypedExtensionConfig{
+			Name:        "envoy.router.cluster_specifier_plugin.cluster_fallback",
+			TypedConfig: protoconv.MessageToAny(config),
+		},
+	}
+}
+
+func convertFallbackClusters(
+	opts RouteOptions,
+	listenerPort int,
+	original string, // origin cluster name
+	fallbackClusters []*networking.Destination,
+) *fallback.ClusterFallbackConfig_ClusterConfig {
+	var clusters []string
+	for _, dst := range fallbackClusters {
+		hostname := host.Name(dst.GetHost())
+		fallbackCluster := opts.LookupDestinationCluster(dst, opts.LookupService(hostname), listenerPort)
+		clusters = append(clusters, fallbackCluster)
+	}
+	return &fallback.ClusterFallbackConfig_ClusterConfig{
+		RoutingCluster:   original,
+		FallbackClusters: clusters,
+	}
+}
+
 // processDestination processes a single destination in a route. It specifies to which cluster the route should
 // be routed to. It also sets the headers and hash policy if specified.
 // Returns the hostname of the destination.
 func processDestination(dst *networking.HTTPRouteDestination, opts RouteOptions, listenerPort int, out *route.Route, action *route.RouteAction) host.Name {
 	hostname := host.Name(dst.GetDestination().GetHost())
-	action.ClusterSpecifier = &route.RouteAction_Cluster{
-		Cluster: opts.LookupDestinationCluster(dst.Destination, opts.LookupService(hostname), listenerPort),
+	original := opts.LookupDestinationCluster(dst.Destination, opts.LookupService(hostname), listenerPort)
+
+	if len(dst.Fallback) > 0 {
+		singleClusterConfig := &fallback.ClusterFallbackConfig{
+			ConfigSpecifier: &fallback.ClusterFallbackConfig_ClusterConfig_{
+				ClusterConfig: convertFallbackClusters(opts, listenerPort, original, dst.Fallback),
+			},
+		}
+		action.ClusterSpecifier = &route.RouteAction_InlineClusterSpecifierPlugin{
+			InlineClusterSpecifierPlugin: buildClusterSpecifierPlugin(singleClusterConfig),
+		}
+	} else {
+		action.ClusterSpecifier = &route.RouteAction_Cluster{
+			Cluster: original,
+		}
 	}
+
 	if dst.Headers != nil {
 		operations := TranslateHeadersOperations(dst.Headers)
 		out.RequestHeadersToAdd = append(out.RequestHeadersToAdd, operations.RequestHeadersToAdd...)
