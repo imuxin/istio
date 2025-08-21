@@ -2,10 +2,11 @@ module istio.io/istio
 
 go 1.24.0
 
+replace istio.io/api => github.com/fnless/api v1.26.2-0.20250807135234-a99303994fc1
+
 replace (
 	github.com/envoyproxy/go-control-plane/contrib => github.com/fnless/go-control-plane/contrib v1.32.5
 	github.com/envoyproxy/go-control-plane/envoy => github.com/fnless/go-control-plane/envoy v1.32.5
-	istio.io/api => github.com/fnless/api v1.26.2-0.20250807135234-a99303994fc1
 )
 
 require (

@@ -10928,6 +10928,31 @@ spec:
                             required:
                             - host
                             type: object
+                          fallback:
+                            description: A list of clusters to use as a fallback if
+                              the primary clusters all are unhealthy.
+                            items:
+                              properties:
+                                host:
+                                  description: The name of a service from the service
+                                    registry.
+                                  type: string
+                                port:
+                                  description: Specifies the port on the host that
+                                    is being addressed.
+                                  properties:
+                                    number:
+                                      maximum: 4294967295
+                                      minimum: 0
+                                      type: integer
+                                  type: object
+                                subset:
+                                  description: The name of a subset within the service.
+                                  type: string
+                              required:
+                              - host
+                              type: object
+                            type: array
                           headers:
                             properties:
                               request:
@@ -11980,6 +12005,31 @@ spec:
                             required:
                             - host
                             type: object
+                          fallback:
+                            description: A list of clusters to use as a fallback if
+                              the primary clusters all are unhealthy.
+                            items:
+                              properties:
+                                host:
+                                  description: The name of a service from the service
+                                    registry.
+                                  type: string
+                                port:
+                                  description: Specifies the port on the host that
+                                    is being addressed.
+                                  properties:
+                                    number:
+                                      maximum: 4294967295
+                                      minimum: 0
+                                      type: integer
+                                  type: object
+                                subset:
+                                  description: The name of a subset within the service.
+                                  type: string
+                              required:
+                              - host
+                              type: object
+                            type: array
                           headers:
                             properties:
                               request:
@@ -13032,6 +13082,31 @@ spec:
                             required:
                             - host
                             type: object
+                          fallback:
+                            description: A list of clusters to use as a fallback if
+                              the primary clusters all are unhealthy.
+                            items:
+                              properties:
+                                host:
+                                  description: The name of a service from the service
+                                    registry.
+                                  type: string
+                                port:
+                                  description: Specifies the port on the host that
+                                    is being addressed.
+                                  properties:
+                                    number:
+                                      maximum: 4294967295
+                                      minimum: 0
+                                      type: integer
+                                  type: object
+                                subset:
+                                  description: The name of a subset within the service.
+                                  type: string
+                              required:
+                              - host
+                              type: object
+                            type: array
                           headers:
                             properties:
                               request:
