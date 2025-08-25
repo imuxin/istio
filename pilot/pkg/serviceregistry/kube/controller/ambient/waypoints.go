@@ -38,6 +38,10 @@ import (
 	"istio.io/istio/pkg/workloadapi"
 )
 
+const (
+	WaypointLabelSelector = "gateway.istio.io/managed=istio.io-mesh-controller"
+)
+
 type InboundBinding struct {
 	Port     uint32
 	Protocol workloadapi.ApplicationTunnel_Protocol

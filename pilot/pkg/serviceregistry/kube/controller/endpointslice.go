@@ -30,6 +30,7 @@ import (
 	"istio.io/api/annotation"
 	"istio.io/istio/pilot/pkg/features"
 	"istio.io/istio/pilot/pkg/model"
+	"istio.io/istio/pilot/pkg/serviceregistry/kube/controller/ambient"
 	"istio.io/istio/pkg/config"
 	"istio.io/istio/pkg/config/host"
 	"istio.io/istio/pkg/config/schema/kind"
@@ -51,7 +52,7 @@ var (
 )
 
 func newEndpointSliceController(c *Controller) *endpointSliceController {
-	slices := kclient.NewFiltered[*v1.EndpointSlice](c.client, kclient.Filter{ObjectFilter: c.client.ObjectFilter()})
+	slices := kclient.NewFiltered[*v1.EndpointSlice](c.client, kclient.Filter{LabelSelector: ambient.WaypointLabelSelector, ObjectFilter: c.client.ObjectFilter()})
 	out := &endpointSliceController{
 		c:             c,
 		slices:        slices,

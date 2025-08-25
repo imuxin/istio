@@ -262,7 +262,7 @@ func NewController(kubeClient kubelib.Client, options Options) *Controller {
 		)
 	}
 
-	c.services = kclient.NewFiltered[*v1.Service](kubeClient, kclient.Filter{ObjectFilter: kubeClient.ObjectFilter()})
+	c.services = kclient.NewFiltered[*v1.Service](kubeClient, kclient.Filter{LabelSelector: ambient.WaypointLabelSelector, ObjectFilter: kubeClient.ObjectFilter()})
 
 	registerHandlers(c, c.services, "Services", c.onServiceEvent, nil)
 
@@ -273,6 +273,7 @@ func NewController(kubeClient kubelib.Client, options Options) *Controller {
 	registerHandlers[*v1.Node](c, c.nodes, "Nodes", c.onNodeEvent, nil)
 
 	c.podsClient = kclient.NewFiltered[*v1.Pod](kubeClient, kclient.Filter{
+		LabelSelector:   ambient.WaypointLabelSelector,
 		ObjectFilter:    kubeClient.ObjectFilter(),
 		ObjectTransform: kubelib.StripPodUnusedFields,
 	})

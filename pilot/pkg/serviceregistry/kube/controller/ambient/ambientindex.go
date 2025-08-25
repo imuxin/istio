@@ -176,13 +176,17 @@ func New(options Options) Index {
 	gatewayClassClient := kclient.NewDelayedInformer[*v1beta1.GatewayClass](options.Client, gvr.GatewayClass, kubetypes.StandardInformer, filter)
 	GatewayClasses := krt.WrapClient[*v1beta1.GatewayClass](gatewayClassClient, opts.WithName("informer/GatewayClasses")...)
 
-	servicesClient := kclient.NewFiltered[*v1.Service](options.Client, filter)
+	servicesClient := kclient.NewFiltered[*v1.Service](options.Client, kclient.Filter{
+		LabelSelector: WaypointLabelSelector,
+		ObjectFilter:  options.Client.ObjectFilter(),
+	})
 	Services := krt.WrapClient[*v1.Service](servicesClient, opts.WithName("informer/Services")...)
 	Nodes := krt.NewInformerFiltered[*v1.Node](options.Client, kclient.Filter{
 		ObjectFilter:    options.Client.ObjectFilter(),
 		ObjectTransform: kubeclient.StripNodeUnusedFields,
 	}, opts.WithName("informer/Nodes")...)
 	Pods := krt.NewInformerFiltered[*v1.Pod](options.Client, kclient.Filter{
+		LabelSelector:   WaypointLabelSelector,
 		ObjectFilter:    options.Client.ObjectFilter(),
 		ObjectTransform: kubeclient.StripPodUnusedFields,
 	}, opts.WithName("informer/Pods")...)
@@ -191,7 +195,8 @@ func New(options Options) Index {
 	Namespaces := krt.NewInformer[*v1.Namespace](options.Client, opts.WithName("informer/Namespaces")...)
 
 	EndpointSlices := krt.NewInformerFiltered[*discovery.EndpointSlice](options.Client, kclient.Filter{
-		ObjectFilter: options.Client.ObjectFilter(),
+		LabelSelector: WaypointLabelSelector,
+		ObjectFilter:  options.Client.ObjectFilter(),
 	}, opts.WithName("informer/EndpointSlices")...)
 
 	Networks := buildNetworkCollections(Namespaces, Gateways, options, opts)
