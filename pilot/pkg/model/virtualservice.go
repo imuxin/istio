@@ -148,6 +148,11 @@ func resolveVirtualServiceShortnames(config config.Config) config.Config {
 			if w.Destination != nil {
 				w.Destination.Host = string(ResolveShortnameToFQDN(w.Destination.Host, meta))
 			}
+			for _, d := range w.Fallback {
+				if d != nil {
+					d.Host = string(ResolveShortnameToFQDN(d.Host, meta))
+				}
+			}
 		}
 		if d.Mirror != nil {
 			d.Mirror.Host = string(ResolveShortnameToFQDN(d.Mirror.Host, meta))
