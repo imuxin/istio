@@ -272,7 +272,7 @@ func routeConfigurationMatch(patchContext networking.EnvoyFilter_PatchContext, r
 	// we match on the port number and virtual host for sidecars
 	// we match on port number, server port name, gateway name, plus virtual host for gateways
 	if patchContext != networking.EnvoyFilter_GATEWAY {
-		if rMatch.Name != "" && rMatch.Name != rc.Name {
+		if rMatch.Name != "" && !strings.Contains(rc.Name, rMatch.Name) {
 			return false
 		}
 		// FIXME: Ports on a route can be 0. the API only takes uint32 for ports
